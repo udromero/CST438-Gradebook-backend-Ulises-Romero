@@ -1,17 +1,21 @@
 package com.cst438.controllers;
 
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -160,7 +164,7 @@ public class GradeBookController {
 		// get assignment 
 		Assignment assignment = assignmentRepository.findById(assignmentId).orElse(null);
 		if (assignment == null) {
-			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Assignment not found. "+assignmentId );
+			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Assignment not found. " + assignmentId );
 		}
 		// check that user is the course instructor
 		if (!assignment.getCourse().getInstructor().equals(email)) {
@@ -168,6 +172,68 @@ public class GradeBookController {
 		}
 		
 		return assignment;
+	}
+	
+	// Add an assignment for a course, include name and due date
+	@PostMapping("/assignment")
+	@Transactional
+    public void createNewAssignment(@RequestParam("email") String instructor_email,
+                                           @RequestParam("id") int course_id,
+                                           @RequestParam("name") String name,
+                                           @RequestParam("due_date") Date due_date) {
+		
+		//Get course
+        Course course = courseRepository.findById(course_id).orElse(null);
+        
+        if (course == null) {
+            throw new IllegalArgumentException("Course not found");
+        }
+        
+        // Set new assignments values;
+        Assignment assignment = new Assignment();
+        assignment.setCourse(course);
+        assignment.setName(name);
+        assignment.setDueDate(due_date);
+        assignment.setNeedsGrading(1);
+        
+		// check that user is the course instructor
+		if (!assignment.getCourse().getInstructor().equals(instructor_email)) {
+			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
+		}
+		
+        assignmentRepository.save(assignment);
+    }
+	
+	// Update an existing assignment for a course with a new name
+	@PutMapping("/assignment/{assignment_id}")
+	@Transactional
+	public void updateAssignmentName(@PathVariable int assignment_id,
+									 @RequestParam("email") String instructor_email,
+	                                 @RequestParam("new_name") String new_name) {
+	    // Get assignment
+	    Assignment assignment = checkAssignment(assignment_id, instructor_email);
+	    
+	    // Update assignment name and save it
+	    assignment.setName(new_name);
+	    assignmentRepository.save(assignment);
+	}
+	
+	// Delete an existing assignment for a course (if assignment has no existing grades)
+	@DeleteMapping("/assignment/{assignment_id}")
+	@Transactional
+	public void deleteAssignment(@PathVariable int assignment_id,
+								 @RequestParam("email") String instructor_email) {
+	    
+	    // Find assignment by ID and check if the instructor is authorized to delete the assignment
+	    Assignment assignment = checkAssignment(assignment_id, instructor_email);
+	 
+	    // Check if the assignment has any grades
+	    if (assignment.getNeedsGrading() == 0) {
+	    	// Delete assignment
+		    assignmentRepository.delete(assignment);
+	    } else {
+	    	throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Can't delete an assignment with existing grades.");
+	    }
 	}
 
 }
