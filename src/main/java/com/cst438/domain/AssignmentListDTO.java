@@ -22,6 +22,10 @@ public class AssignmentListDTO {
 			this.dueDate = dueDate;
 			this.courseTitle = courseTitle;
 		}
+		
+		public AssignmentDTO() {
+			super();
+		}
 
 		@Override
 		public String toString() {
