@@ -178,17 +178,20 @@ public class GradeBookController {
 	@Transactional
 	public void createAssignment(@RequestBody AssignmentListDTO.AssignmentDTO assignments) {
 		
+		if(assignments == null) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body can not be null");
+		}
+		
 		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
 		
-		int course_id = assignments.courseId;
-		Course c = courseRepository.findById(course_id).orElse(null);
-		
-		if (c == null) {
-			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Course not found.");
-		}
-		if (!c.getInstructor().equals(email)) {
-			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized.");
-		}
+		Course c = courseRepository.findById(assignments.courseId).orElse(null);
+//		
+//		if (c == null) {
+//			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Course not found.");m
+//		}
+//		if (!c.getInstructor().equals(email)) {
+//			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized.");
+//		}
 		
 		String due = assignments.dueDate;
 		//change to Date
@@ -200,12 +203,7 @@ public class GradeBookController {
 		assign.setName(assignments.assignmentName);
 		assign.setDueDate(date);
 		assign.setNeedsGrading(1); // needs grading
-		assignmentRepository.save(assign);
-		
-//		AssignmentListDTO result = new AssignmentListDTO();
-//        	result.assignments.add(new AssignmentListDTO.AssignmentDTO(assign.getId(), assign.getCourse().getCourse_id(), assign.getName(), assign.getDueDate().toString() , assign.getCourse().getTitle()));
-//		
-//        	return result;
+		assignmentRepository.save(assign);	
 	}
 	
 	//get the specified assignment
