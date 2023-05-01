@@ -174,35 +174,91 @@ public class GradeBookController {
 		return assignment;
 	}
 	
-	// Add an assignment for a course, include name and due date
 	@PostMapping("/assignment")
 	@Transactional
-    public void createNewAssignment(@RequestParam("email") String instructor_email,
-                                           @RequestParam("id") int course_id,
-                                           @RequestParam("name") String name,
-                                           @RequestParam("due_date") Date due_date) {
+	public void createAssignment(@RequestBody AssignmentListDTO.AssignmentDTO assignments) {
 		
-		//Get course
-        Course course = courseRepository.findById(course_id).orElse(null);
-        
-        if (course == null) {
-            throw new IllegalArgumentException("Course not found");
-        }
-        
-        // Set new assignments values;
-        Assignment assignment = new Assignment();
-        assignment.setCourse(course);
-        assignment.setName(name);
-        assignment.setDueDate(due_date);
-        assignment.setNeedsGrading(1);
-        
-		// check that user is the course instructor
-		if (!assignment.getCourse().getInstructor().equals(instructor_email)) {
-			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
+		if(assignments == null) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body can not be null");
 		}
 		
-        assignmentRepository.save(assignment);
-    }
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
+		
+		Course c = courseRepository.findById(assignments.courseId).orElse(null);
+//		
+//		if (c == null) {
+//			throw new ResponseStatusException( HttpStatus.BAD_REQUEST, "Course not found.");m
+//		}
+//		if (!c.getInstructor().equals(email)) {
+//			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized.");
+//		}
+		
+		String due = assignments.dueDate;
+		//change to Date
+		Date date = Date.valueOf(due);
+		
+		//add the assignment
+		Assignment assign = new Assignment();
+		assign.setCourse(c);
+		assign.setName(assignments.assignmentName);
+		assign.setDueDate(date);
+		assign.setNeedsGrading(1); // needs grading
+		assignmentRepository.save(assign);	
+	}
+	
+	//get the specified assignment
+		@GetMapping("/assignment/{assignmentId}")
+		public AssignmentListDTO getAssignment(@PathVariable("assignmentId") Integer assignmentId  ) {
+			
+			String email = "dwisneski@csumb.edu";  
+			Assignment assignment = checkAssignment(assignmentId, email);
+			
+			AssignmentListDTO result = new AssignmentListDTO();
+			result.assignments.add(new AssignmentListDTO.AssignmentDTO(assignment.getId(), assignment.getCourse().getCourse_id(), assignment.getName(), assignment.getDueDate().toString() , assignment.getCourse().getTitle()));
+
+			return result;
+		}
+	
+//	// Add an assignment for a course, include name and due date
+//	@PostMapping("/assignment")
+//	@Transactional
+//	public AssignmentListDTO createNewAssignment(@RequestBody AssignmentListDTO.AssignmentDTO newAssignment) {
+//		
+//		// 
+//		if(newAssignment == null) {
+//			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Property courseId cannot must be specified for assignment.");
+//		}
+//		
+//		//Get course
+//        Course course = courseRepository.findById(newAssignment.courseId).orElse(null);
+//        
+//        if (course == null) {
+//            throw new IllegalArgumentException("Course ID not found");
+//        } 
+//        
+//		// check that user is the course instructor
+//		if (!course.getInstructor().equals("dwisneski@csumb.edu")) {
+//			throw new ResponseStatusException( HttpStatus.UNAUTHORIZED, "Not Authorized. " );
+//		}
+//		
+//		// Check null fields
+//		if(newAssignment.assignmentName == null || newAssignment.dueDate == null) {
+//			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Must enter a valid assignment name/due date.");
+//		}
+//		
+//		// Set new assignments values;
+//        Assignment assignment = new Assignment();
+//        assignment.setCourse(course);
+//        assignment.setName(newAssignment.assignmentName);
+//        assignment.setDueDate(java.sql.Date.valueOf(newAssignment.dueDate));
+//        assignment.setNeedsGrading(1);
+//        assignmentRepository.save(assignment);
+//        
+//        AssignmentListDTO result = new AssignmentListDTO();
+//        result.assignments.add(new AssignmentListDTO.AssignmentDTO(assignment.getId(), course.getCourse_id(), assignment.getName(), assignment.getDueDate().toString(), course.getTitle()));
+//        
+//        return result;
+//    }
 	
 	// Update an existing assignment for a course with a new name
 	@PutMapping("/assignment/{assignment_id}")
